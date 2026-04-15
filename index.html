@@ -596,6 +596,12 @@ input[type="color"]::-webkit-color-swatch { border:1px solid var(--border); bord
         </div>
       </div>
 
+      <!-- Transparent bg -->
+      <div class="toggle-check-row">
+        <button class="tog on" id="transp-tog" onclick="toggleTransparent()"></button>
+        <span class="toggle-check-label">Gjennomsiktig bakgrunn (PNG)</span>
+      </div>
+
       <label>Piksel-tetthet</label>
       <div class="density-row" id="density-row"></div>
     </div>
@@ -681,6 +687,7 @@ const S = {
     gradColor2: '#8b6c42',
     frameText: '',
     logoData: null,
+    transparentBg: true,
   }
 };
 
@@ -889,6 +896,11 @@ function toggleGradient() {
   $('grad-tog').classList.toggle('on', S.style.gradient);
   $('grad-color-wrap').style.display = S.style.gradient ? 'block' : 'none';
   if (S.isGenerated) renderQR();
+}
+
+function toggleTransparent() {
+  S.style.transparentBg = !S.style.transparentBg;
+  $('transp-tog').classList.toggle('on', S.style.transparentBg);
 }
 
 // Logo
@@ -1160,17 +1172,23 @@ function svgToPng(svgStr, filename) {
   const url  = URL.createObjectURL(blob);
   const img  = new Image();
   img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth || 800; c.height = img.naturalHeight || 800;
-    c.getContext('2d').drawImage(img, 0, 0);
+    const cv = document.createElement('canvas');
+    cv.width = img.naturalWidth || 800; cv.height = img.naturalHeight || 800;
+    // Don't fill background — canvas is transparent by default
+    cv.getContext('2d').drawImage(img, 0, 0);
     const a = document.createElement('a');
-    a.download = filename; a.href = c.toDataURL('image/png'); a.click();
+    a.download = filename; a.href = cv.toDataURL('image/png'); a.click();
     URL.revokeObjectURL(url);
   };
   img.src = url;
 }
 function downloadSVG() { dlSVG(buildSVG(S.url, S.style), slug()+'.svg'); }
-function downloadPNG() { svgToPng(buildSVG(S.url, S.style, 20), slug()+'.png'); }
+function downloadPNG() {
+  const st = S.style.transparentBg
+    ? { ...S.style, light: 'none' }
+    : S.style;
+  svgToPng(buildSVG(S.url, st, 20), slug()+'.png');
+}
 
 function copyUrl() {
   navigator.clipboard.writeText(S.url).then(() => toast('URL kopiert'));
