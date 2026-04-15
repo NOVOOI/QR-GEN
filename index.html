@@ -176,15 +176,15 @@ h1 { font-size:34px; font-weight:300; letter-spacing:.02em; line-height:1; }
 label {
   display:block; font-family:'Courier Prime',monospace;
   font-size:9px; letter-spacing:.16em; text-transform:uppercase;
-  color:var(--muted); margin-bottom:6px; margin-top:16px;
+  color:var(--muted); margin-bottom:8px; margin-top:24px;
 }
 label:first-of-type { margin-top:0; }
 
 input[type="text"], input[type="url"], textarea, select {
-  width:100%; padding:9px 12px;
+  width:100%; padding:11px 14px;
   border:1px solid var(--border); border-radius:2px;
   background:var(--input-bg); font-family:'Courier Prime',monospace;
-  font-size:12px; color:var(--text); outline:none; transition:border-color .15s;
+  font-size:13px; color:var(--text); outline:none; transition:border-color .15s; line-height:1.5;
 }
 input[type="text"]:focus, input[type="url"]:focus,
 textarea:focus, select:focus { border-color:var(--accent); }
@@ -204,7 +204,7 @@ input[readonly] {
   padding:2px 7px; border-radius:2px; pointer-events:none;
 }
 
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 18px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
 .grid-2 .full { grid-column:1/-1; }
 
 /* ── DIVIDER / TOGGLE ── */
@@ -486,7 +486,7 @@ input[type="color"]::-webkit-color-swatch { border:1px solid var(--border); bord
       <h1>QR Kode Generator</h1>
     </div>
     <div class="header-right">
-      <a href="https://novooi.github.io/agent-hub" class="hdr-link" target="_blank">← Agent Hub</a>
+      <a href="https://novooi.github.io/NOVOOI-AGENTS/" class="hdr-link" target="_blank">← Agent Hub</a>
       <button class="dark-toggle" onclick="toggleDark()" title="Bytt tema" id="dark-btn">☽</button>
     </div>
   </header>
@@ -569,30 +569,7 @@ input[type="color"]::-webkit-color-swatch { border:1px solid var(--border); bord
     <!-- UTSEENDE CARD -->
     <div class="card">
       <p class="card-title">Utseende</p>
-
-      <label style="margin-top:0">Fargepalett</label>
-      <div class="presets" id="color-presets">
-        <button class="preset-btn active" onclick="applyPreset(this,'#2c2318','#f8f4ee')">
-          <div class="preset-swatch"><div class="swatch" style="background:#2c2318"></div><div class="swatch" style="background:#f8f4ee"></div></div>Klassisk
-        </button>
-        <button class="preset-btn" onclick="applyPreset(this,'#000000','#ffffff')">
-          <div class="preset-swatch"><div class="swatch" style="background:#000"></div><div class="swatch" style="background:#fff"></div></div>Standard
-        </button>
-        <button class="preset-btn" onclick="applyPreset(this,'#f0ece4','#1c1a17')">
-          <div class="preset-swatch"><div class="swatch" style="background:#f0ece4"></div><div class="swatch" style="background:#1c1a17"></div></div>Natt
-        </button>
-        <button class="preset-btn" onclick="applyPreset(this,'#1a3a2a','#e8f5ee')">
-          <div class="preset-swatch"><div class="swatch" style="background:#1a3a2a"></div><div class="swatch" style="background:#e8f5ee"></div></div>Skog
-        </button>
-        <button class="preset-btn" onclick="applyPreset(this,'#7c2020','#fdf0f0')">
-          <div class="preset-swatch"><div class="swatch" style="background:#7c2020"></div><div class="swatch" style="background:#fdf0f0"></div></div>Bordeaux
-        </button>
-        <button class="preset-btn" onclick="applyPreset(this,'#1a3350','#eaf1f8')">
-          <div class="preset-swatch"><div class="swatch" style="background:#1a3350"></div><div class="swatch" style="background:#eaf1f8"></div></div>Hav
-        </button>
-      </div>
-
-      <label>Tilpassede farger</label>
+      <label style="margin-top:0">Farger</label>
       <div class="color-row">
         <div class="color-field">
           <input type="color" id="color-dark" value="#2c2318" oninput="onColorChange()"/>
@@ -621,22 +598,6 @@ input[type="color"]::-webkit-color-swatch { border:1px solid var(--border); bord
 
       <label>Piksel-tetthet</label>
       <div class="density-row" id="density-row"></div>
-
-      <label>Modul-stil</label>
-      <div class="module-style-row">
-        <button class="ms-btn active" id="ms-square" onclick="setModuleStyle('square',this)">
-          <div class="ms-icon" id="msi-square"></div>
-          <span class="ms-label">Firkant</span>
-        </button>
-        <button class="ms-btn" id="ms-rounded" onclick="setModuleStyle('rounded',this)">
-          <div class="ms-icon" id="msi-rounded"></div>
-          <span class="ms-label">Avrundet</span>
-        </button>
-        <button class="ms-btn" id="ms-dots" onclick="setModuleStyle('dots',this)">
-          <div class="ms-icon" id="msi-dots"></div>
-          <span class="ms-label">Sirkler</span>
-        </button>
-      </div>
     </div>
 
     <!-- AVANSERT CARD -->
@@ -724,6 +685,18 @@ const S = {
 };
 
 const $ = id => document.getElementById(id);
+
+// ════════════════════════════════════════════════
+// DENSITY CONFIG — must be before init()
+// ════════════════════════════════════════════════
+const DENSITIES = [
+  { label:'Grov',   ecLevel:'L', grid:3  },
+  { label:'Medium', ecLevel:'M', grid:5  },
+  { label:'Fin',    ecLevel:'Q', grid:7  },
+  { label:'Ultra',  ecLevel:'H', grid:10 },
+];
+let activeDensity = 1;
+
 const UTM_PRESETS = {
   messe:      { medium:'event',  campaign:'messe-2026',     content:'', term:'' },
   katalog:    { medium:'print',  campaign:'katalog-ss26',   content:'', term:'' },
@@ -758,7 +731,6 @@ const UTM_PRESETS = {
     $('dark-btn').textContent = '☀';
   }
   buildDensityButtons();
-  buildModuleStyleIcons();
 })();
 
 function checkPw() {
@@ -792,14 +764,6 @@ function switchTab(name, btn) {
 // ════════════════════════════════════════════════
 // DENSITY BUTTONS
 // ════════════════════════════════════════════════
-const DENSITIES = [
-  { label:'Grov',   ecLevel:'L', grid:3 },
-  { label:'Medium', ecLevel:'M', grid:5 },
-  { label:'Fin',    ecLevel:'Q', grid:7 },
-  { label:'Ultra',  ecLevel:'H', grid:10 },
-];
-let activeDensity = 1;
-
 function buildDensityButtons() {
   const row = $('density-row');
   DENSITIES.forEach((d, i) => {
@@ -834,27 +798,9 @@ function setDensity(i) {
 // ════════════════════════════════════════════════
 // MODULE STYLE ICONS
 // ════════════════════════════════════════════════
-function buildModuleStyleIcons() {
-  const pat = [1,1,1,1, 1,0,0,1, 1,0,0,1, 1,1,1,1];
-  ['square','rounded','dots'].forEach(style => {
-    const el = $('msi-'+style);
-    pat.forEach((on, i) => {
-      const b = document.createElement('div');
-      b.className = 'block';
-      if (!on) b.style.opacity = '0';
-      else {
-        if (style === 'rounded') b.style.borderRadius = '3px';
-        if (style === 'dots') b.style.borderRadius = '50%';
-      }
-      el.appendChild(b);
-    });
-  });
-}
 
 function setModuleStyle(style, btn) {
   S.style.moduleStyle = style;
-  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
   if (S.isGenerated) renderQR();
 }
 
@@ -1025,7 +971,7 @@ function buildSVG(data, st, size) {
     <image href="${st.logoData}" x="${lx}" y="${ly}" width="${lSz}" height="${lSz}" preserveAspectRatio="xMidYMid meet"/>`;
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" shape-rendering="crispEdges">`
     + defs
     + `<rect width="${W}" height="${H}" fill="${st.light}"/>`
     + modules + logo + frame
