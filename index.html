@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html data-theme="light" lang="no">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QR Kode Generator · Novooi</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23f8f4ee'/%3E%3C!-- TL finder --%3E%3Crect x='2' y='2' width='12' height='12' rx='1.5' fill='%232c2318'/%3E%3Crect x='3.5' y='3.5' width='9' height='9' fill='%23f8f4ee'/%3E%3Crect x='5' y='5' width='6' height='6' fill='%232c2318'/%3E%3C!-- TR finder --%3E%3Crect x='18' y='2' width='12' height='12' rx='1.5' fill='%232c2318'/%3E%3Crect x='19.5' y='3.5' width='9' height='9' fill='%23f8f4ee'/%3E%3Crect x='21' y='5' width='6' height='6' fill='%232c2318'/%3E%3C!-- BL finder --%3E%3Crect x='2' y='18' width='12' height='12' rx='1.5' fill='%232c2318'/%3E%3Crect x='3.5' y='19.5' width='9' height='9' fill='%23f8f4ee'/%3E%3Crect x='5' y='21' width='6' height='6' fill='%232c2318'/%3E%3C!-- data dots --%3E%3Crect x='16' y='16' width='3' height='3' fill='%232c2318' opacity='.35'/%3E%3Crect x='20' y='16' width='3' height='3' fill='%232c2318' opacity='.35'/%3E%3Crect x='16' y='20' width='3' height='3' fill='%232c2318' opacity='.35'/%3E%3C!-- N --%3E%3Ctext x='24.5' y='29.5' text-anchor='middle' font-family='Georgia,serif' font-size='13' font-weight='700' fill='%232c2318'%3EN%3C/text%3E%3C/svg%3E"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Courier+Prime&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --bg: #f8f4ee;
+  --bg2: radial-gradient(ellipse at 15% 15%, rgba(210,190,160,0.22) 0%, transparent 55%),
+         radial-gradient(ellipse at 85% 80%, rgba(180,158,128,0.14) 0%, transparent 55%);
+  --card: rgba(255,252,248,0.88);
+  --text: #2c2318;
+  --muted: rgba(44,35,24,0.42);
+  --muted2: rgba(44,35,24,0.25);
+  --border: rgba(44,35,24,0.11);
+  --border2: rgba(44,35,24,0.06);
+  --input-bg: rgba(248,244,238,0.7);
+  --accent: #2c2318;
+  --accent-text: #f8f4ee;
+  --hover: rgba(44,35,24,0.055);
+  --locked-bg: rgba(44,35,24,0.04);
+  --pill-bg: rgba(44,35,24,0.05);
+  --danger: rgba(140,40,20,0.5);
+  --success: rgba(30,80,40,0.7);
+}
+[data-theme="dark"] {
+  --bg: #16130e;
+  --bg2: radial-gradient(ellipse at 15% 15%, rgba(60,45,25,0.35) 0%, transparent 55%),
+         radial-gradient(ellipse at 85% 80%, rgba(45,35,18,0.25) 0%, transparent 55%);
+  --card: rgba(26,22,16,0.92);
+  --text: #e4dccf;
+  --muted: rgba(228,220,207,0.42);
+  --muted2: rgba(228,220,207,0.2);
+  --border: rgba(228,220,207,0.1);
+  --border2: rgba(228,220,207,0.055);
+  --input-bg: rgba(38,32,24,0.85);
+  --accent: #e4dccf;
+  --accent-text: #16130e;
+  --hover: rgba(228,220,207,0.06);
+  --locked-bg: rgba(228,220,207,0.04);
+  --pill-bg: rgba(228,220,207,0.07);
+  --danger: rgba(200,80,60,0.5);
+  --success: rgba(80,180,100,0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 80px;
+  transition: background .25s, color .25s;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--bg2);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── PASSWORD GATE ── */
+#pw-gate {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 20px;
+}
+#pw-gate .pw-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 40px 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 320px;
+}
+#pw-gate .pw-eye { font-size: 10px; letter-spacing:.18em; text-transform:uppercase; font-family:'Courier Prime',monospace; color:var(--muted); }
+#pw-gate h2 { font-size:24px; font-weight:300; }
+#pw-gate input {
+  width:100%; padding:10px 13px;
+  border:1px solid var(--border); border-radius:2px;
+  background:var(--input-bg); font-family:'Courier Prime',monospace;
+  font-size:13px; color:var(--text); outline:none; text-align:center;
+  letter-spacing:.15em;
+}
+#pw-gate input:focus { border-color:var(--accent); }
+#pw-gate .pw-btn {
+  width:100%; padding:11px; background:var(--accent); color:var(--accent-text);
+  border:none; border-radius:2px; font-family:'Cormorant Garamond',serif;
+  font-size:16px; letter-spacing:.06em; cursor:pointer;
+}
+#pw-gate .pw-err {
+  font-family:'Courier Prime',monospace; font-size:10px; color:var(--danger);
+  letter-spacing:.1em; display:none;
+}
+
+/* ── APP ── */
+#app { display:none; width:100%; max-width:720px; position:relative; z-index:1; }
+
+/* ── HEADER ── */
+header {
+  width:100%; padding:40px 0 28px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:36px;
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+}
+.eyebrow {
+  font-family:'Courier Prime',monospace; font-size:9.5px;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:7px;
+}
+h1 { font-size:34px; font-weight:300; letter-spacing:.02em; line-height:1; }
+.header-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.hdr-link {
+  font-family:'Courier Prime',monospace; font-size:9.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); text-decoration:none;
+  border:1px solid var(--border); padding:6px 12px; border-radius:2px;
+  transition:all .15s; white-space:nowrap;
+}
+.hdr-link:hover { color:var(--text); border-color:var(--muted); }
+.dark-toggle {
+  width:36px; height:36px; border:1px solid var(--border); border-radius:2px;
+  background:transparent; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; font-size:14px; transition:all .15s; flex-shrink:0;
+  color:var(--text);
+}
+.dark-toggle:hover { background:var(--hover); }
+
+/* ── TABS ── */
+.tab-nav {
+  display:flex; gap:0; margin-bottom:24px;
+  border:1px solid var(--border); border-radius:2px; overflow:hidden;
+}
+.tab-btn {
+  flex:1; padding:10px; background:transparent; border:none; border-right:1px solid var(--border);
+  font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted); cursor:pointer; transition:all .15s;
+}
+.tab-btn:last-child { border-right:none; }
+.tab-btn.active { background:var(--accent); color:var(--accent-text); }
+.tab-btn:hover:not(.active) { background:var(--hover); color:var(--text); }
+.tab-panel { display:none; }
+.tab-panel.visible { display:block; }
+
+/* ── CARDS ── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border); border-radius:3px;
+  padding:28px 32px; margin-bottom:18px;
+  transition:background .25s;
+}
+.card-title {
+  font-family:'Courier Prime',monospace; font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:18px;
+}
+
+label {
+  display:block; font-family:'Courier Prime',monospace;
+  font-size:9px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:6px; margin-top:16px;
+}
+label:first-of-type { margin-top:0; }
+
+input[type="text"], input[type="url"], textarea, select {
+  width:100%; padding:9px 12px;
+  border:1px solid var(--border); border-radius:2px;
+  background:var(--input-bg); font-family:'Courier Prime',monospace;
+  font-size:12px; color:var(--text); outline:none; transition:border-color .15s;
+}
+input[type="text"]:focus, input[type="url"]:focus,
+textarea:focus, select:focus { border-color:var(--accent); }
+textarea { resize:vertical; min-height:100px; line-height:1.5; }
+select { appearance:none; cursor:pointer; }
+
+input[readonly] {
+  background:var(--locked-bg); color:var(--muted);
+  cursor:not-allowed; border-color:var(--border2);
+}
+
+.locked-row { position:relative; }
+.locked-badge {
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  font-family:'Courier Prime',monospace; font-size:7.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--muted2); background:var(--locked-bg);
+  padding:2px 7px; border-radius:2px; pointer-events:none;
+}
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 18px; }
+.grid-2 .full { grid-column:1/-1; }
+
+/* ── DIVIDER / TOGGLE ── */
+.divider { border:none; border-top:1px solid var(--border2); margin:22px 0 0; }
+.toggle-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0 0; cursor:pointer; user-select:none;
+}
+.toggle-label {
+  font-family:'Cormorant Garamond',serif; font-size:16px;
+  font-weight:400; letter-spacing:.04em; color:var(--muted);
+}
+.toggle-icon {
+  font-family:'Courier Prime',monospace; font-size:17px; color:var(--muted2);
+  transition:transform .2s;
+}
+.toggle-icon.open { transform:rotate(45deg); }
+.collapsible { display:none; padding-top:2px; }
+.collapsible.visible { display:block; }
+
+/* ── PRESETS / BUTTONS ── */
+.presets { display:flex; gap:7px; flex-wrap:wrap; }
+.preset-btn {
+  display:flex; align-items:center; gap:6px; padding:6px 11px;
+  border:1px solid var(--border); border-radius:2px; background:transparent;
+  cursor:pointer; font-family:'Courier Prime',monospace; font-size:9.5px;
+  letter-spacing:.07em; color:var(--muted); transition:all .15s;
+}
+.preset-btn:hover { border-color:var(--muted); color:var(--text); }
+.preset-btn.active { border-color:var(--accent); color:var(--text); }
+.preset-swatch { display:flex; gap:3px; }
+.swatch { width:10px; height:10px; border-radius:50%; border:1px solid rgba(0,0,0,0.1); flex-shrink:0; }
+
+/* ── COLOR ROW ── */
+.color-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+.color-field {
+  display:flex; align-items:center; gap:9px; padding:7px 11px;
+  border:1px solid var(--border); border-radius:2px; background:var(--input-bg);
+}
+input[type="color"] {
+  width:24px; height:24px; border:none; border-radius:50%;
+  padding:0; cursor:pointer; background:none; outline:none; flex-shrink:0;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding:0; border-radius:50%; }
+input[type="color"]::-webkit-color-swatch { border:1px solid var(--border); border-radius:50%; }
+.color-label { font-family:'Courier Prime',monospace; font-size:9.5px; letter-spacing:.09em; color:var(--muted); text-transform:uppercase; flex:1; }
+.color-hex { font-family:'Courier Prime',monospace; font-size:9.5px; color:var(--muted2); }
+
+/* ── DENSITY ── */
+.density-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:4px; }
+.density-btn {
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding:11px 6px 9px; border:1px solid var(--border); border-radius:2px;
+  background:transparent; cursor:pointer; transition:all .15s;
+}
+.density-btn:hover { border-color:var(--muted); }
+.density-btn.active { border-color:var(--accent); background:var(--hover); }
+.density-icon { display:grid; gap:1px; width:26px; height:26px; }
+.density-icon .dcell { background:var(--muted2); }
+.density-btn.active .dcell { background:var(--accent); }
+.density-name {
+  font-family:'Courier Prime',monospace; font-size:8.5px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+}
+.density-btn.active .density-name { color:var(--text); }
+
+/* ── MODULE STYLE ── */
+.module-style-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px; }
+.ms-btn {
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding:12px 8px; border:1px solid var(--border); border-radius:2px;
+  background:transparent; cursor:pointer; transition:all .15s;
+}
+.ms-btn:hover { border-color:var(--muted); }
+.ms-btn.active { border-color:var(--accent); background:var(--hover); }
+.ms-icon { width:28px; height:28px; display:grid; grid-template-columns:repeat(4,1fr); gap:2px; }
+.ms-icon .block { background:var(--muted2); }
+.ms-btn.active .block { background:var(--accent); }
+.ms-label { font-family:'Courier Prime',monospace; font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.ms-btn.active .ms-label { color:var(--text); }
+
+/* ── GRADIENT TOGGLE ── */
+.toggle-check-row {
+  display:flex; align-items:center; gap:10px; padding:10px 0 0;
+}
+.tog {
+  width:36px; height:20px; background:var(--border); border-radius:10px;
+  position:relative; cursor:pointer; transition:background .2s; flex-shrink:0;
+  border:none; outline:none;
+}
+.tog.on { background:var(--accent); }
+.tog::after {
+  content:''; position:absolute; left:3px; top:3px; width:14px; height:14px;
+  border-radius:50%; background:var(--accent-text); transition:left .2s;
+}
+.tog.on::after { left:19px; }
+.toggle-check-label { font-family:'Courier Prime',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+
+/* ── URL PREVIEW ── */
+.url-preview {
+  margin-top:18px; background:var(--locked-bg);
+  border:1px solid var(--border2); border-radius:2px; padding:12px 14px;
+}
+.url-preview-label {
+  font-family:'Courier Prime',monospace; font-size:8.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--muted2); margin-bottom:5px;
+}
+.url-preview-text {
+  font-family:'Courier Prime',monospace; font-size:10px; color:var(--muted);
+  word-break:break-all; line-height:1.6;
+}
+
+/* ── BUTTONS ── */
+.btn-primary {
+  width:100%; padding:13px 20px; background:var(--accent); color:var(--accent-text);
+  border:none; border-radius:2px; font-family:'Cormorant Garamond',serif;
+  font-size:16px; letter-spacing:.08em; cursor:pointer; transition:opacity .15s; margin-top:24px;
+}
+.btn-primary:hover { opacity:.85; }
+.btn-primary:disabled { opacity:.28; cursor:not-allowed; }
+
+.btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:24px; }
+.btn { 
+  padding:9px 14px; border:1px solid var(--border); border-radius:2px;
+  background:transparent; font-family:'Courier Prime',monospace;
+  font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.btn:hover { background:var(--hover); color:var(--text); border-color:var(--muted2); }
+.btn.active { background:var(--hover); color:var(--text); }
+.btn-danger { color:var(--danger); }
+.btn-danger:hover { border-color:var(--danger); }
+
+/* ── QR OUTPUT ── */
+.qr-card {
+  background:var(--card); border:1px solid var(--border); border-radius:3px;
+  padding:32px; display:none; flex-direction:column; align-items:center;
+}
+.qr-card.visible { display:flex; }
+.qr-name { font-size:20px; font-weight:400; letter-spacing:.03em; margin-bottom:5px; text-align:center; }
+.qr-dest {
+  font-family:'Courier Prime',monospace; font-size:9.5px; color:var(--muted);
+  margin-bottom:24px; text-align:center; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+#qr-output { border:1px solid var(--border2); border-radius:2px; line-height:0; overflow:hidden; }
+#qr-output svg { display:block; width:260px; height:260px; }
+.utm-pills { display:flex; flex-wrap:wrap; gap:4px; margin-top:14px; justify-content:center; }
+.utm-pill {
+  font-family:'Courier Prime',monospace; font-size:8.5px; padding:2px 8px;
+  background:var(--pill-bg); border-radius:2px; color:var(--muted);
+}
+.utm-pill span { opacity:.5; }
+
+/* ── HISTORY ── */
+.history-empty { text-align:center; padding:60px 20px; }
+.history-empty p { font-size:18px; color:var(--muted); }
+.history-list { display:flex; flex-direction:column; gap:14px; }
+.hist-card {
+  background:var(--card); border:1px solid var(--border); border-radius:3px;
+  padding:18px 20px; display:flex; gap:16px; align-items:flex-start;
+}
+.hist-qr { flex-shrink:0; border:1px solid var(--border2); border-radius:2px; line-height:0; overflow:hidden; }
+.hist-qr svg { display:block; width:64px; height:64px; }
+.hist-info { flex:1; min-width:0; }
+.hist-name { font-size:18px; font-weight:400; margin-bottom:3px; }
+.hist-url {
+  font-family:'Courier Prime',monospace; font-size:9.5px; color:var(--muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:7px;
+}
+.hist-date { font-family:'Courier Prime',monospace; font-size:8.5px; color:var(--muted2); margin-top:6px; }
+.hist-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+
+/* ── BATCH ── */
+.batch-results { margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+.batch-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 14px; background:var(--locked-bg);
+  border:1px solid var(--border2); border-radius:2px;
+}
+.batch-item .bi-qr { flex-shrink:0; line-height:0; border-radius:1px; overflow:hidden; }
+.batch-item .bi-qr svg { display:block; width:36px; height:36px; }
+.batch-item .bi-name { font-size:15px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.batch-item .bi-url { font-family:'Courier Prime',monospace; font-size:9px; color:var(--muted); }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--accent); color:var(--accent-text);
+  font-family:'Courier Prime',monospace; font-size:10px; letter-spacing:.12em;
+  text-transform:uppercase; padding:9px 20px; border-radius:2px;
+  opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:999;
+  white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── UTM PRESET SELECT ── */
+.select-wrapper { position:relative; }
+.select-wrapper::after {
+  content:'▾'; position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  font-size:10px; color:var(--muted); pointer-events:none;
+}
+
+/* ── LOGO UPLOAD ── */
+.upload-area {
+  border:1px dashed var(--border); border-radius:2px; padding:16px;
+  text-align:center; cursor:pointer; transition:all .15s; position:relative;
+}
+.upload-area:hover { border-color:var(--muted); }
+.upload-area input[type="file"] {
+  position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  padding:0; border:none; background:none;
+}
+.upload-area p { font-family:'Courier Prime',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.logo-preview { display:flex; align-items:center; gap:10px; margin-top:10px; }
+.logo-preview img { width:36px; height:36px; object-fit:contain; border:1px solid var(--border); border-radius:2px; }
+.logo-preview span { font-family:'Courier Prime',monospace; font-size:9.5px; color:var(--muted); flex:1; }
+
+/* ── PRINT ── */
+@media print {
+  body > *:not(#print-area) { display:none !important; }
+  body::before { display:none; }
+  #print-area { display:flex !important; }
+}
+#print-area {
+  display:none; position:fixed; inset:0; background:white;
+  align-items:center; justify-content:center; z-index:8888; flex-direction:column; gap:16px;
+}
+#print-area svg { width:280px; height:280px; display:block; }
+#print-area .pr-name { font-size:22px; color:#000; }
+#print-area .pr-url { font-family:'Courier Prime',monospace; font-size:10px; color:#555; }
+#print-close {
+  position:absolute; top:20px; right:20px; background:none; border:1px solid #ccc;
+  border-radius:2px; padding:6px 12px; cursor:pointer; font-family:'Courier Prime',monospace;
+  font-size:10px; text-transform:uppercase; letter-spacing:.1em;
+}
+
+/* ── MISC ── */
+.suggest-btn {
+  font-family:'Courier Prime',monospace; font-size:8.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted2); background:none; border:none;
+  cursor:pointer; padding:3px 0 0; display:inline-block; text-decoration:underline;
+  text-underline-offset:3px;
+}
+.suggest-btn:hover { color:var(--muted); }
+.inline-row { display:flex; align-items:baseline; gap:10px; }
+.inline-row label { margin-top:0; flex-shrink:0; }
+.field-wrap { flex:1; }
+</style>
+</head>
+<body>
+
+<!-- ── PASSWORD GATE ── -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <p class="pw-eye">Novooi · Internt verktøy</p>
+    <h2>Logg inn</h2>
+    <input type="password" id="pw-input" placeholder="passord" onkeydown="if(event.key==='Enter')checkPw()" autocomplete="current-password"/>
+    <button class="pw-btn" onclick="checkPw()">Fortsett →</button>
+    <p class="pw-err" id="pw-err">Feil passord</p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+
+  <!-- PRINT AREA -->
+  <div id="print-area">
+    <button id="print-close" onclick="closePrint()">× Lukk</button>
+    <div id="print-qr"></div>
+    <p class="pr-name" id="print-name"></p>
+    <p class="pr-url" id="print-url"></p>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div>
+      <p class="eyebrow">QR · Generator · Novooi</p>
+      <h1>QR Kode Generator</h1>
+    </div>
+    <div class="header-right">
+      <a href="https://novooi.github.io/agent-hub" class="hdr-link" target="_blank">← Agent Hub</a>
+      <button class="dark-toggle" onclick="toggleDark()" title="Bytt tema" id="dark-btn">☽</button>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('create',this)">Opprett</button>
+    <button class="tab-btn" onclick="switchTab('history',this)">Historikk</button>
+    <button class="tab-btn" onclick="switchTab('batch',this)">Batch</button>
+  </div>
+
+  <!-- ══════════════ TAB: OPPRETT ══════════════ -->
+  <div class="tab-panel visible" id="tab-create">
+
+    <!-- URL CARD -->
+    <div class="card">
+      <p class="card-title">URL &amp; destinasjon</p>
+      <label for="input-name">Navn (valgfri)</label>
+      <input type="text" id="input-name" placeholder="f.eks. Vår katalog 2026"/>
+
+      <label for="input-url">Mål-URL *</label>
+      <input type="url" id="input-url" placeholder="https://novooi.com/..." autocomplete="off"/>
+
+      <div class="url-preview" id="url-preview" style="display:none">
+        <p class="url-preview-label">Generert URL</p>
+        <p class="url-preview-text" id="url-preview-text"></p>
+      </div>
+
+      <button class="btn-primary" id="btn-generate" onclick="generate()" disabled>
+        Generer QR-kode →
+      </button>
+    </div>
+
+    <!-- UTM CARD -->
+    <div class="card">
+      <p class="card-title">UTM-parametere</p>
+
+      <label>Mal</label>
+      <div class="select-wrapper">
+        <select id="utm-preset" onchange="applyUtmPreset()">
+          <option value="">Velg en mal...</option>
+          <option value="messe">Messemateriell</option>
+          <option value="katalog">Priskatalog SS26</option>
+          <option value="instagram">Instagram bio</option>
+          <option value="brosjyre">Brosjyre</option>
+          <option value="nyhetsbrev">Nyhetsbrev</option>
+          <option value="google">Google Ads</option>
+          <option value="linkedin">LinkedIn</option>
+        </select>
+      </div>
+
+      <div class="grid-2">
+        <div class="full">
+          <label>Kilde (utm_source)</label>
+          <div class="locked-row">
+            <input type="text" id="utm-source" value="NOVOOIqr" readonly/>
+            <span class="locked-badge">Låst</span>
+          </div>
+        </div>
+        <div>
+          <label for="utm-medium">Medium</label>
+          <input type="text" id="utm-medium" placeholder="qr, email, cpc" oninput="onUtmChange()"/>
+        </div>
+        <div>
+          <label for="utm-campaign">Kampanje</label>
+          <input type="text" id="utm-campaign" placeholder="var2026" oninput="onUtmChange()"/>
+          <button class="suggest-btn" onclick="suggestCampaign()">Foreslå navn</button>
+        </div>
+        <div>
+          <label for="utm-content">Innhold (valgfri)</label>
+          <input type="text" id="utm-content" placeholder="brosjyre-side3" oninput="onUtmChange()"/>
+        </div>
+        <div>
+          <label for="utm-term">Søkeord (valgfri)</label>
+          <input type="text" id="utm-term" placeholder="valgfri" oninput="onUtmChange()"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- UTSEENDE CARD -->
+    <div class="card">
+      <p class="card-title">Utseende</p>
+
+      <label style="margin-top:0">Fargepalett</label>
+      <div class="presets" id="color-presets">
+        <button class="preset-btn active" onclick="applyPreset(this,'#2c2318','#f8f4ee')">
+          <div class="preset-swatch"><div class="swatch" style="background:#2c2318"></div><div class="swatch" style="background:#f8f4ee"></div></div>Klassisk
+        </button>
+        <button class="preset-btn" onclick="applyPreset(this,'#000000','#ffffff')">
+          <div class="preset-swatch"><div class="swatch" style="background:#000"></div><div class="swatch" style="background:#fff"></div></div>Standard
+        </button>
+        <button class="preset-btn" onclick="applyPreset(this,'#f0ece4','#1c1a17')">
+          <div class="preset-swatch"><div class="swatch" style="background:#f0ece4"></div><div class="swatch" style="background:#1c1a17"></div></div>Natt
+        </button>
+        <button class="preset-btn" onclick="applyPreset(this,'#1a3a2a','#e8f5ee')">
+          <div class="preset-swatch"><div class="swatch" style="background:#1a3a2a"></div><div class="swatch" style="background:#e8f5ee"></div></div>Skog
+        </button>
+        <button class="preset-btn" onclick="applyPreset(this,'#7c2020','#fdf0f0')">
+          <div class="preset-swatch"><div class="swatch" style="background:#7c2020"></div><div class="swatch" style="background:#fdf0f0"></div></div>Bordeaux
+        </button>
+        <button class="preset-btn" onclick="applyPreset(this,'#1a3350','#eaf1f8')">
+          <div class="preset-swatch"><div class="swatch" style="background:#1a3350"></div><div class="swatch" style="background:#eaf1f8"></div></div>Hav
+        </button>
+      </div>
+
+      <label>Tilpassede farger</label>
+      <div class="color-row">
+        <div class="color-field">
+          <input type="color" id="color-dark" value="#2c2318" oninput="onColorChange()"/>
+          <span class="color-label">Forgrunn</span>
+          <span class="color-hex" id="hex-dark">#2c2318</span>
+        </div>
+        <div class="color-field">
+          <input type="color" id="color-light" value="#f8f4ee" oninput="onColorChange()"/>
+          <span class="color-label">Bakgrunn</span>
+          <span class="color-hex" id="hex-light">#f8f4ee</span>
+        </div>
+      </div>
+
+      <!-- Gradient -->
+      <div class="toggle-check-row">
+        <button class="tog" id="grad-tog" onclick="toggleGradient()"></button>
+        <span class="toggle-check-label">Gradient forgrunn</span>
+      </div>
+      <div id="grad-color-wrap" style="display:none; margin-top:10px;">
+        <div class="color-field">
+          <input type="color" id="color-grad2" value="#8b6c42" oninput="if(S.style.gradient)renderQR()"/>
+          <span class="color-label">Gradient sluttfarge</span>
+          <span class="color-hex" id="hex-grad2">#8b6c42</span>
+        </div>
+      </div>
+
+      <label>Piksel-tetthet</label>
+      <div class="density-row" id="density-row"></div>
+
+      <label>Modul-stil</label>
+      <div class="module-style-row">
+        <button class="ms-btn active" id="ms-square" onclick="setModuleStyle('square',this)">
+          <div class="ms-icon" id="msi-square"></div>
+          <span class="ms-label">Firkant</span>
+        </button>
+        <button class="ms-btn" id="ms-rounded" onclick="setModuleStyle('rounded',this)">
+          <div class="ms-icon" id="msi-rounded"></div>
+          <span class="ms-label">Avrundet</span>
+        </button>
+        <button class="ms-btn" id="ms-dots" onclick="setModuleStyle('dots',this)">
+          <div class="ms-icon" id="msi-dots"></div>
+          <span class="ms-label">Sirkler</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- AVANSERT CARD -->
+    <div class="card">
+      <p class="card-title">Avansert</p>
+
+      <!-- Frame text -->
+      <label for="frame-text">Rammetekst (valgfri)</label>
+      <input type="text" id="frame-text" placeholder="Skann meg · novooi.com" oninput="if(S.isGenerated)renderQR()"/>
+
+      <!-- Logo upload -->
+      <label>Logo-overlay (valgfri)</label>
+      <div class="upload-area" id="logo-upload-area">
+        <input type="file" id="logo-input" accept="image/*" onchange="handleLogoUpload(event)"/>
+        <p>Klikk for å laste opp logo</p>
+      </div>
+      <div class="logo-preview" id="logo-preview" style="display:none">
+        <img id="logo-img" src="" alt="logo"/>
+        <span id="logo-name">logo.png</span>
+        <button class="btn btn-danger" onclick="removeLogo()">Fjern</button>
+      </div>
+    </div>
+
+    <!-- QR OUTPUT -->
+    <div class="qr-card" id="qr-card">
+      <p class="qr-name" id="qr-name"></p>
+      <p class="qr-dest" id="qr-dest"></p>
+      <div id="qr-output"></div>
+      <div class="utm-pills" id="utm-pills"></div>
+      <div class="btn-row">
+        <button class="btn" id="btn-copy-url" onclick="copyUrl()">Kopier URL</button>
+        <button class="btn" onclick="copyQRImage()">Kopier bilde</button>
+        <button class="btn" onclick="downloadSVG()">SVG</button>
+        <button class="btn" onclick="downloadPNG()">PNG</button>
+        <button class="btn" onclick="shareLink()">Del lenke</button>
+        <button class="btn" onclick="printQR()">Skriv ut</button>
+      </div>
+    </div>
+  </div>
+  <!-- end tab create -->
+
+  <!-- ══════════════ TAB: HISTORIKK ══════════════ -->
+  <div class="tab-panel" id="tab-history">
+    <div id="history-content"></div>
+  </div>
+
+  <!-- ══════════════ TAB: BATCH ══════════════ -->
+  <div class="tab-panel" id="tab-batch">
+    <div class="card">
+      <p class="card-title">Batch-generering</p>
+      <p style="font-size:15px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+        Lim inn CSV med kolonnene: <span style="font-family:'Courier Prime',monospace; font-size:11px;">navn, url, medium, campaign, content, term</span><br/>
+        utm_source settes alltid til NOVOOIqr.
+      </p>
+      <label for="batch-csv">CSV-data</label>
+      <textarea id="batch-csv" rows="7" placeholder="navn,url,medium,campaign&#10;Produktside,https://novooi.com/produkt,print,katalog-ss26&#10;Instagram bio,https://novooi.com,social,instagram-bio"></textarea>
+      <button class="btn-primary" onclick="runBatch()" style="margin-top:16px">Generer alle →</button>
+    </div>
+    <div id="batch-results"></div>
+  </div>
+
+</div><!-- end app -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+const S = {
+  url: '',
+  isGenerated: false,
+  currentSVG: '',
+  style: {
+    dark: '#2c2318',
+    light: '#f8f4ee',
+    ecLevel: 'M',
+    moduleStyle: 'square',
+    gradient: false,
+    gradColor2: '#8b6c42',
+    frameText: '',
+    logoData: null,
+  }
+};
+
+const $ = id => document.getElementById(id);
+const UTM_PRESETS = {
+  messe:      { medium:'event',  campaign:'messe-2026',     content:'', term:'' },
+  katalog:    { medium:'print',  campaign:'katalog-ss26',   content:'', term:'' },
+  instagram:  { medium:'social', campaign:'instagram-bio',  content:'', term:'' },
+  brosjyre:   { medium:'print',  campaign:'brosjyre-2026',  content:'', term:'' },
+  nyhetsbrev: { medium:'email',  campaign:'nyhetsbrev',     content:'', term:'' },
+  google:     { medium:'cpc',    campaign:'google-ads',     content:'', term:'' },
+  linkedin:   { medium:'social', campaign:'linkedin',       content:'', term:'' },
+};
+
+// ════════════════════════════════════════════════
+// PASSWORD
+// ════════════════════════════════════════════════
+(function init() {
+  if (sessionStorage.getItem('nv_auth') === '1') unlock();
+  // Read share params
+  const p = new URLSearchParams(location.search);
+  if (p.get('url')) {
+    $('input-url').value = p.get('url') || '';
+    $('input-name').value = p.get('name') || '';
+    $('utm-medium').value = p.get('medium') || '';
+    $('utm-campaign').value = p.get('campaign') || '';
+    $('utm-content').value = p.get('content') || '';
+    $('utm-term').value = p.get('term') || '';
+    if (p.get('dark')) { $('color-dark').value = p.get('dark'); S.style.dark = p.get('dark'); }
+    if (p.get('light')) { $('color-light').value = p.get('light'); S.style.light = p.get('light'); }
+    updatePreview();
+  }
+  // Dark mode persist
+  if (localStorage.getItem('nv_dark') === '1') {
+    document.documentElement.setAttribute('data-theme','dark');
+    $('dark-btn').textContent = '☀';
+  }
+  buildDensityButtons();
+  buildModuleStyleIcons();
+})();
+
+function checkPw() {
+  const val = $('pw-input').value;
+  if (val === 'Novooi26') { sessionStorage.setItem('nv_auth','1'); unlock(); }
+  else { $('pw-err').style.display = 'block'; $('pw-input').value = ''; $('pw-input').focus(); }
+}
+function unlock() { $('pw-gate').style.display = 'none'; $('app').style.display = 'block'; }
+
+// ════════════════════════════════════════════════
+// DARK MODE
+// ════════════════════════════════════════════════
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  $('dark-btn').textContent = isDark ? '☽' : '☀';
+  localStorage.setItem('nv_dark', isDark ? '0' : '1');
+}
+
+// ════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('tab-'+name).classList.add('visible');
+  btn.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ════════════════════════════════════════════════
+// DENSITY BUTTONS
+// ════════════════════════════════════════════════
+const DENSITIES = [
+  { label:'Grov',   ecLevel:'L', grid:3 },
+  { label:'Medium', ecLevel:'M', grid:5 },
+  { label:'Fin',    ecLevel:'Q', grid:7 },
+  { label:'Ultra',  ecLevel:'H', grid:10 },
+];
+let activeDensity = 1;
+
+function buildDensityButtons() {
+  const row = $('density-row');
+  DENSITIES.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'density-btn' + (i === activeDensity ? ' active' : '');
+    btn.onclick = () => setDensity(i);
+    const icon = document.createElement('div');
+    icon.className = `density-icon`;
+    icon.style.gridTemplateColumns = `repeat(${d.grid},1fr)`;
+    icon.style.gap = '1px';
+    for (let j = 0; j < d.grid * d.grid; j++) {
+      const c = document.createElement('div');
+      c.className = 'dcell';
+      const r = Math.floor(j/d.grid), col = j%d.grid;
+      c.style.opacity = ((r+col)%2===0 || r===0 || col===0) ? '1' : '0.08';
+      icon.appendChild(c);
+    }
+    const name = document.createElement('span');
+    name.className = 'density-name'; name.textContent = d.label;
+    btn.appendChild(icon); btn.appendChild(name);
+    row.appendChild(btn);
+  });
+}
+
+function setDensity(i) {
+  activeDensity = i;
+  S.style.ecLevel = DENSITIES[i].ecLevel;
+  document.querySelectorAll('.density-btn').forEach((b,j) => b.classList.toggle('active', j===i));
+  if (S.isGenerated) renderQR();
+}
+
+// ════════════════════════════════════════════════
+// MODULE STYLE ICONS
+// ════════════════════════════════════════════════
+function buildModuleStyleIcons() {
+  const pat = [1,1,1,1, 1,0,0,1, 1,0,0,1, 1,1,1,1];
+  ['square','rounded','dots'].forEach(style => {
+    const el = $('msi-'+style);
+    pat.forEach((on, i) => {
+      const b = document.createElement('div');
+      b.className = 'block';
+      if (!on) b.style.opacity = '0';
+      else {
+        if (style === 'rounded') b.style.borderRadius = '3px';
+        if (style === 'dots') b.style.borderRadius = '50%';
+      }
+      el.appendChild(b);
+    });
+  });
+}
+
+function setModuleStyle(style, btn) {
+  S.style.moduleStyle = style;
+  document.querySelectorAll('.ms-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (S.isGenerated) renderQR();
+}
+
+// ════════════════════════════════════════════════
+// URL & UTM
+// ════════════════════════════════════════════════
+function buildUrl() {
+  const base = $('input-url').value.trim();
+  if (!base) return '';
+  let url;
+  try { url = new URL(base.startsWith('http') ? base : 'https://'+base); } catch { return base; }
+  const params = [
+    ['utm_source',   'NOVOOIqr'],
+    ['utm_medium',   $('utm-medium').value.trim()],
+    ['utm_campaign', $('utm-campaign').value.trim()],
+    ['utm_content',  $('utm-content').value.trim()],
+    ['utm_term',     $('utm-term').value.trim()],
+  ];
+  params.forEach(([k,v]) => { if(v) url.searchParams.set(k,v); });
+  return url.toString();
+}
+
+function updatePreview() {
+  const url = buildUrl();
+  $('btn-generate').disabled = !url;
+  S.url = url;
+  const preview = $('url-preview');
+  if (url) {
+    preview.style.display = 'block';
+    $('url-preview-text').textContent = url;
+  } else {
+    preview.style.display = 'none';
+  }
+  if (S.isGenerated && url) renderQR();
+}
+
+$('input-url').addEventListener('input', updatePreview);
+$('input-url').addEventListener('keydown', e => { if(e.key==='Enter' && !$('btn-generate').disabled) generate(); });
+
+function onUtmChange() { updatePreview(); }
+
+function applyUtmPreset() {
+  const key = $('utm-preset').value;
+  if (!key || !UTM_PRESETS[key]) return;
+  const p = UTM_PRESETS[key];
+  $('utm-medium').value   = p.medium;
+  $('utm-campaign').value = p.campaign;
+  $('utm-content').value  = p.content;
+  $('utm-term').value     = p.term;
+  updatePreview();
+}
+
+function suggestCampaign() {
+  const medium   = $('utm-medium').value.trim();
+  const content  = $('utm-content').value.trim();
+  const month    = new Date().toLocaleString('nb-NO', {month:'short'}).toLowerCase().replace('.','');
+  const year     = new Date().getFullYear().toString().slice(2);
+  const parts    = [medium, content, month+year].filter(Boolean);
+  $('utm-campaign').value = parts.join('-') || 'kampanje-'+month+year;
+  updatePreview();
+}
+
+// ════════════════════════════════════════════════
+// STYLE CONTROLS
+// ════════════════════════════════════════════════
+function applyPreset(btn, dark, light) {
+  $('color-dark').value = dark; $('color-light').value = light;
+  $('hex-dark').textContent = dark; $('hex-light').textContent = light;
+  S.style.dark = dark; S.style.light = light;
+  document.querySelectorAll('#color-presets .preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (S.isGenerated) renderQR();
+}
+
+function onColorChange() {
+  S.style.dark  = $('color-dark').value;
+  S.style.light = $('color-light').value;
+  $('hex-dark').textContent  = S.style.dark;
+  $('hex-light').textContent = S.style.light;
+  document.querySelectorAll('#color-presets .preset-btn').forEach(b => b.classList.remove('active'));
+  if (S.isGenerated) renderQR();
+}
+
+function toggleGradient() {
+  S.style.gradient = !S.style.gradient;
+  $('grad-tog').classList.toggle('on', S.style.gradient);
+  $('grad-color-wrap').style.display = S.style.gradient ? 'block' : 'none';
+  if (S.isGenerated) renderQR();
+}
+
+// Logo
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    S.style.logoData = ev.target.result;
+    $('logo-img').src = ev.target.result;
+    $('logo-name').textContent = file.name;
+    $('logo-preview').style.display = 'flex';
+    $('logo-upload-area').style.display = 'none';
+    if (S.isGenerated) renderQR();
+  };
+  reader.readAsDataURL(file);
+}
+function removeLogo() {
+  S.style.logoData = null;
+  $('logo-preview').style.display = 'none';
+  $('logo-upload-area').style.display = 'block';
+  $('logo-input').value = '';
+  if (S.isGenerated) renderQR();
+}
+
+// ════════════════════════════════════════════════
+// SVG GENERATION
+// ════════════════════════════════════════════════
+function buildSVG(data, st, size) {
+  const cell = size || 10;
+  const margin = cell * 2;
+  const qr = qrcode(0, st.ecLevel);
+  qr.addData(data);
+  qr.make();
+  const n = qr.getModuleCount();
+  const qrPx = n * cell;
+  const frameH = st.frameText ? cell * 3.5 : 0;
+  const W = qrPx + margin * 2;
+  const H = W + frameH;
+
+  let defs = '';
+  let moduleFill = st.dark;
+
+  if (st.gradient) {
+    defs = `<defs><linearGradient id="qrg" x1="0" y1="0" x2="${W}" y2="${W}" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="${st.dark}"/>
+      <stop offset="100%" stop-color="${st.gradColor2 || '#888'}"/>
+    </linearGradient></defs>`;
+    moduleFill = 'url(#qrg)';
+  }
+
+  let modules = '';
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!qr.isDark(r, c)) continue;
+      const x = c * cell + margin;
+      const y = r * cell + margin;
+      modules += moduleShape(x, y, cell, moduleFill, st.moduleStyle);
+    }
+  }
+
+  // Frame text
+  let frame = '';
+  if (st.frameText) {
+    const fy = W + frameH * 0.58;
+    const fs = cell * 1.1;
+    frame = `<rect x="0" y="${W}" width="${W}" height="${frameH}" fill="${st.dark}"/>
+    <text x="${W/2}" y="${fy}" text-anchor="middle" font-family="Courier New, monospace"
+      font-size="${fs}" fill="${st.light}" letter-spacing="0.12em">${escXML(st.frameText)}</text>`;
+  }
+
+  // Logo overlay
+  let logo = '';
+  if (st.logoData) {
+    const lSz = qrPx * 0.22;
+    const lx = margin + qrPx / 2 - lSz / 2;
+    const ly = margin + qrPx / 2 - lSz / 2;
+    const pad = cell * 0.4;
+    logo = `<rect x="${lx-pad}" y="${ly-pad}" width="${lSz+pad*2}" height="${lSz+pad*2}" fill="${st.light}" rx="${pad}"/>
+    <image href="${st.logoData}" x="${lx}" y="${ly}" width="${lSz}" height="${lSz}" preserveAspectRatio="xMidYMid meet"/>`;
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">`
+    + defs
+    + `<rect width="${W}" height="${H}" fill="${st.light}"/>`
+    + modules + logo + frame
+    + `</svg>`;
+}
+
+function moduleShape(x, y, cell, fill, style) {
+  if (style === 'dots') {
+    const r = cell * 0.44, cx = x + cell/2, cy = y + cell/2;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>`;
+  }
+  if (style === 'rounded') {
+    const rx = cell * 0.28;
+    return `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="${rx}" fill="${fill}"/>`;
+  }
+  return `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${fill}"/>`;
+}
+
+function escXML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════
+function renderQR() {
+  S.style.frameText  = $('frame-text').value.trim();
+  S.style.gradColor2 = $('color-grad2').value;
+  S.currentSVG = buildSVG(S.url, S.style);
+  const out = $('qr-output');
+  out.innerHTML = S.currentSVG;
+  out.style.background = S.style.light;
+}
+
+// ════════════════════════════════════════════════
+// GENERATE
+// ════════════════════════════════════════════════
+function generate() {
+  const url = buildUrl();
+  if (!url) return;
+  S.url = url;
+
+  $('qr-name').textContent = $('input-name').value.trim() || $('input-url').value.trim();
+  $('qr-dest').textContent  = $('input-url').value.trim();
+
+  renderQR();
+
+  // UTM pills
+  const pills = $('utm-pills');
+  pills.innerHTML = '';
+  [['source','NOVOOIqr'],['medium',$('utm-medium').value.trim()],
+   ['campaign',$('utm-campaign').value.trim()],['content',$('utm-content').value.trim()],
+   ['term',$('utm-term').value.trim()]
+  ].forEach(([k,v]) => {
+    if(!v) return;
+    const p = document.createElement('span');
+    p.className = 'utm-pill';
+    p.innerHTML = `<span>${k}:</span> ${v}`;
+    pills.appendChild(p);
+  });
+
+  S.isGenerated = true;
+  $('qr-card').classList.add('visible');
+  $('qr-card').scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+  // Save to history
+  saveHistory();
+}
+
+// ════════════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════════════
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('nv_qr_history') || '[]'); } catch { return []; }
+}
+function saveHistory() {
+  const hist = getHistory();
+  const entry = {
+    id: Math.random().toString(36).slice(2,9),
+    name: $('input-name').value.trim() || $('input-url').value.trim(),
+    url: $('input-url').value.trim(),
+    finalUrl: S.url,
+    utm: {
+      medium:   $('utm-medium').value.trim(),
+      campaign: $('utm-campaign').value.trim(),
+      content:  $('utm-content').value.trim(),
+      term:     $('utm-term').value.trim(),
+    },
+    style: { ...S.style, logoData: null }, // don't store large base64 in history
+    svg: buildSVG(S.url, { ...S.style, logoData: null }, 4),
+    createdAt: new Date().toISOString(),
+  };
+  hist.unshift(entry);
+  localStorage.setItem('nv_qr_history', JSON.stringify(hist.slice(0,50)));
+}
+
+function renderHistory() {
+  const hist = getHistory();
+  const el = $('history-content');
+  if (hist.length === 0) {
+    el.innerHTML = '<div class="history-empty"><p>Ingen historikk ennå</p></div>';
+    return;
+  }
+  el.innerHTML = '<div class="history-list" id="hist-list"></div>';
+  const list = $('hist-list');
+  hist.forEach(entry => {
+    const d = document.createElement('div');
+    d.className = 'hist-card';
+    const date = new Date(entry.createdAt).toLocaleDateString('nb-NO',{day:'2-digit',month:'short',year:'numeric'});
+    const pills = Object.entries(entry.utm).filter(([,v])=>v)
+      .map(([k,v])=>`<span class="utm-pill"><span>${k}:</span> ${v}</span>`).join('');
+    d.innerHTML = `
+      <div class="hist-qr">${entry.svg}</div>
+      <div class="hist-info">
+        <p class="hist-name">${entry.name}</p>
+        <p class="hist-url">${entry.url}</p>
+        <div class="utm-pills" style="justify-content:flex-start">
+          <span class="utm-pill"><span>source:</span> NOVOOIqr</span>${pills}
+        </div>
+        <p class="hist-date">${date}</p>
+        <div class="hist-actions">
+          <button class="btn" onclick="reloadFromHistory('${entry.id}')">Rediger</button>
+          <button class="btn" onclick="histDownloadSVG('${entry.id}')">SVG</button>
+          <button class="btn" onclick="histDownloadPNG('${entry.id}')">PNG</button>
+          <button class="btn btn-danger" onclick="deleteHistory('${entry.id}')">Slett</button>
+        </div>
+      </div>`;
+    list.appendChild(d);
+  });
+}
+
+function reloadFromHistory(id) {
+  const entry = getHistory().find(e => e.id === id);
+  if (!entry) return;
+  $('input-name').value      = entry.name;
+  $('input-url').value       = entry.url;
+  $('utm-medium').value      = entry.utm.medium   || '';
+  $('utm-campaign').value    = entry.utm.campaign  || '';
+  $('utm-content').value     = entry.utm.content   || '';
+  $('utm-term').value        = entry.utm.term      || '';
+  if (entry.style) {
+    $('color-dark').value  = entry.style.dark || '#2c2318';
+    $('color-light').value = entry.style.light|| '#f8f4ee';
+    Object.assign(S.style, entry.style);
+    $('hex-dark').textContent  = S.style.dark;
+    $('hex-light').textContent = S.style.light;
+  }
+  switchTab('create', document.querySelectorAll('.tab-btn')[0]);
+  updatePreview();
+  generate();
+  toast('Lastet inn fra historikk');
+}
+
+function histDownloadSVG(id) {
+  const entry = getHistory().find(e => e.id === id);
+  if (!entry) return;
+  const bigSVG = buildSVG(entry.finalUrl, entry.style || S.style);
+  dlSVG(bigSVG, entry.name);
+}
+function histDownloadPNG(id) {
+  const entry = getHistory().find(e => e.id === id);
+  if (!entry) return;
+  svgToPng(buildSVG(entry.finalUrl, entry.style || S.style, 20), slug(entry.name)+'.png');
+}
+function deleteHistory(id) {
+  const hist = getHistory().filter(e => e.id !== id);
+  localStorage.setItem('nv_qr_history', JSON.stringify(hist));
+  renderHistory();
+}
+
+// ════════════════════════════════════════════════
+// DOWNLOADS
+// ════════════════════════════════════════════════
+function slug(name) {
+  return (name || $('input-name').value.trim() || 'qr-kode')
+    .toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'').replace(/æ/g,'ae').replace(/ø/g,'o').replace(/å/g,'a');
+}
+function dlSVG(svgStr, filename) {
+  const blob = new Blob([svgStr], {type:'image/svg+xml'});
+  const a = document.createElement('a');
+  a.download = filename.endsWith('.svg') ? filename : filename+'.svg';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function svgToPng(svgStr, filename) {
+  const blob = new Blob([svgStr], {type:'image/svg+xml'});
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth || 800; c.height = img.naturalHeight || 800;
+    c.getContext('2d').drawImage(img, 0, 0);
+    const a = document.createElement('a');
+    a.download = filename; a.href = c.toDataURL('image/png'); a.click();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+function downloadSVG() { dlSVG(buildSVG(S.url, S.style), slug()+'.svg'); }
+function downloadPNG() { svgToPng(buildSVG(S.url, S.style, 20), slug()+'.png'); }
+
+function copyUrl() {
+  navigator.clipboard.writeText(S.url).then(() => toast('URL kopiert'));
+}
+
+function copyQRImage() {
+  if (!S.currentSVG) return;
+  const blob = new Blob([S.currentSVG], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    c.getContext('2d').drawImage(img, 0, 0, 512, 512);
+    c.toBlob(pngBlob => {
+      try {
+        navigator.clipboard.write([new ClipboardItem({'image/png': pngBlob})]);
+        toast('QR-bilde kopiert til utklippstavlen');
+      } catch { toast('Kopiering ikke støttet i denne nettleseren'); }
+    });
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+function shareLink() {
+  const p = new URLSearchParams({
+    name:     $('input-name').value.trim(),
+    url:      $('input-url').value.trim(),
+    medium:   $('utm-medium').value.trim(),
+    campaign: $('utm-campaign').value.trim(),
+    content:  $('utm-content').value.trim(),
+    term:     $('utm-term').value.trim(),
+    dark:     S.style.dark,
+    light:    S.style.light,
+  });
+  const link = location.origin + location.pathname + '?' + p.toString();
+  navigator.clipboard.writeText(link).then(() => toast('Del-lenke kopiert'));
+}
+
+function printQR() {
+  $('print-qr').innerHTML = buildSVG(S.url, S.style, 12);
+  $('print-name').textContent = $('input-name').value.trim() || '';
+  $('print-url').textContent  = $('input-url').value.trim() || S.url;
+  $('print-area').style.display = 'flex';
+  window.print();
+}
+function closePrint() { $('print-area').style.display = 'none'; }
+
+// ════════════════════════════════════════════════
+// BATCH
+// ════════════════════════════════════════════════
+function runBatch() {
+  const raw = $('batch-csv').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const isHeader = lines[0].toLowerCase().includes('navn') || lines[0].toLowerCase().includes('url');
+  const data = (isHeader ? lines.slice(1) : lines).map(l => {
+    const cols = l.split(',').map(c => c.trim());
+    return { name:cols[0]||'', url:cols[1]||'', medium:cols[2]||'', campaign:cols[3]||'', content:cols[4]||'', term:cols[5]||'' };
+  }).filter(r => r.url);
+
+  if (!data.length) { toast('Ingen gyldige rader funnet'); return; }
+
+  const results = data.map(row => {
+    let url;
+    try { url = new URL(row.url.startsWith('http') ? row.url : 'https://'+row.url); } catch { return null; }
+    const p = [['utm_source','NOVOOIqr'],['utm_medium',row.medium],['utm_campaign',row.campaign],['utm_content',row.content],['utm_term',row.term]];
+    p.forEach(([k,v]) => { if(v) url.searchParams.set(k,v); });
+    const finalUrl = url.toString();
+    const svg = buildSVG(finalUrl, S.style, 4);
+    return { name:row.name||row.url, finalUrl, svg, slug: slug(row.name||row.url) };
+  }).filter(Boolean);
+
+  // Show preview
+  const el = $('batch-results');
+  el.innerHTML = `<div class="card"><p class="card-title">${results.length} QR-koder generert</p>
+    <div class="batch-results" id="batch-list"></div>
+    <button class="btn-primary" onclick="downloadBatchZip()">Last ned alle som ZIP →</button>
+  </div>`;
+  const list = $('batch-list');
+  results.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'batch-item';
+    d.innerHTML = `<div class="bi-qr">${r.svg}</div><div><p class="bi-name">${r.name}</p><p class="bi-url">${r.finalUrl}</p></div>`;
+    list.appendChild(d);
+  });
+
+  window._batchResults = results;
+}
+
+async function downloadBatchZip() {
+  const results = window._batchResults;
+  if (!results?.length) return;
+  toast('Pakker ZIP…');
+  const zip = new JSZip();
+  results.forEach(r => zip.file(r.slug+'.svg', buildSVG(r.finalUrl, S.style)));
+  const blob = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a');
+  a.download = 'novooi-qr-batch.zip';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('ZIP lastet ned');
+}
+
+// ════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════
+let toastTimer;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
