@@ -932,7 +932,7 @@ function removeLogo() {
 // ════════════════════════════════════════════════
 function buildSVG(data, st, size) {
   const cell = size || 10;
-  const margin = cell * 2;
+  const margin = 0;
   const qr = qrcode(0, st.ecLevel);
   qr.addData(data);
   qr.make();
